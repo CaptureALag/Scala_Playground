@@ -48,7 +48,7 @@ class FoodProcessor private(
     }
 
     def _this = this
-    _process(_this.point[FoodProcessorWriter], this.procPower)
+    _process(_this.point[FoodProcLogger], this.procPower)
   }
 
   private def enqueue(potato: Potato): FoodProcessorLogged = {

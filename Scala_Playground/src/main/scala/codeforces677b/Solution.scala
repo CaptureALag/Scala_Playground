@@ -3,6 +3,7 @@ package codeforces677b
 import scala.collection.immutable.Queue
 import scala.io.StdIn._
 import scalaz._, Scalaz._
+import FoodProcessorLogSupport._
 
 object Solution extends App {
 
@@ -22,25 +23,38 @@ object Solution extends App {
             speed = procSpeed
           )
 
-        PotatoesSituation(Queue(potatoes: _*), foodProcessor)
+        PotatoesSituation(Queue(potatoes: _*), foodProcessor.point[FoodProcLogger], 0)
     }
 
-  type PotatoesState[T] = State[PotatoesSituation, T]
-
-
+  type PotatoesState[T] = StateT[FoodProcLogger, PotatoesSituation, T]
+  def PotatoesState[T](f : PotatoesSituation => FoodProcLogger[(PotatoesSituation, T)]) = StateT[FoodProcLogger, PotatoesSituation, T](f)
+  //def PotatoesState[T](f : PotatoesSituation => (PotatoesSituation, T)) : PotatoesState[T] = State[PotatoesSituation, T](f).point[FoodProcLogger]
 
   def pushUntilFullOrQueueEmpty: PotatoesState[Unit] = {
-    def push: PotatoesState[Unit] = {
-      for {
-        s@PotatoesSituation(q, foodProc, _) <- get[PotatoesSituation]
-        _ <- put({
+    def tryPushOnce = PotatoesState[Boolean] {
+      case situation@PotatoesSituation(+:(potato, tail), foodProc, _) =>
 
-          s
-        })
-      } ()
+        foodProc.map(
+          _.tryPutPotato(potato) match {
+            case \/-(newFoodProc) =>
+              situation.copy(
+                tail,
+                newFoodProc
+              ) -> true
+
+            case -\/(_) =>
+              situation -> false
+          }
+        )
+
+      case situation =>
+        (situation -> false).point[FoodProcLogger]
     }
 
-    push
+    PotatoesState[Unit] {
+      case situation =>
+        (situation, ()).point[FoodProcLogger]
+    }
   }
 
   def readInts: Seq[Int] =

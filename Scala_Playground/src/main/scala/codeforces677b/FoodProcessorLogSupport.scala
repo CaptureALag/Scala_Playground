@@ -3,8 +3,8 @@ package codeforces677b
 import scalaz._, Scalaz._
 
 object FoodProcessorLogSupport {
-  type FoodProcessorWriter[T] = Writer[DList[(String, FoodProcessor)], T]
-  type FoodProcessorLogged = FoodProcessorWriter[FoodProcessor]
+  type FoodProcLogger[T] = Writer[DList[(String, FoodProcessor)], T]
+  type FoodProcessorLogged = FoodProcLogger[FoodProcessor]
 
   implicit def logSupport(proc: FoodProcessor): LogSupport = LogSupport(proc)
 
