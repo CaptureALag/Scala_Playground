@@ -11,4 +11,7 @@ class Potato(
 
   def slice(howMuch: Int): Potato =
     new Potato(id, height, heightLeft - howMuch)
+
+  override def toString: String =
+    s"Potato #$id [height = $height][heightLeft = $heightLeft]"
 }

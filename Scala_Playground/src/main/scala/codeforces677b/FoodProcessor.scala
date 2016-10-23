@@ -1,6 +1,6 @@
 package codeforces677b
 
-import codeforces677b.FoodProcessorLogSupport._
+import codeforces677b.FoodProcessorLoggingSupport._
 
 import scalaz.Scalaz._
 import scalaz._

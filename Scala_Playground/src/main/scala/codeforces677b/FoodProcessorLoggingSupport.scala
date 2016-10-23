@@ -2,7 +2,7 @@ package codeforces677b
 
 import scalaz._, Scalaz._
 
-object FoodProcessorLogSupport {
+object FoodProcessorLoggingSupport {
   type FoodProcLogger[T] = Writer[DList[(String, FoodProcessor)], T]
   type FoodProcessorLogged = FoodProcLogger[FoodProcessor]
 

@@ -1,28 +1,26 @@
-import codeforces677b.PotatoesSituation
-import codeforces677b.Solution.PotatoesState
+import scalaz._, Scalaz._
 
-import scalaz.{-\/, \/-}
+type ListWriter[T] = Writer[DList[String], T]
 
-def pushUntilFullOrQueueEmpty: PotatoesState[Unit] = {
-  def push = PotatoesState[Boolean] {
-    case situation@PotatoesSituation(+:(potato, tail), foodProc, _) =>
+def f = Writer[DList[String], String] (
+  DList("123"),
+  "abc"
+)
 
-      foodProc.map(
-        _.tryPutPotato(potato) match {
-          case \/-(newFoodProc) =>
-            situation.copy(
-              tail,
-              newFoodProc
-            ) -> true
+def g = Writer[DList[String], String] (
+  DList("456"),
+  "def"
+)
 
-          case -\/(_) =>
-            situation -> false
-        }
-      ).run
+def h = Writer[DList[String], String] (
+  DList("789"),
+  "ghi"
+)
 
-    case situation =>
-      situation -> false
-  }
+List(
+  f,
+  g,
+  h
+).sequence[ListWriter, String].run._1.toList
 
-  push.map(_ => ())
-}
+f.run._1.formatted("")
