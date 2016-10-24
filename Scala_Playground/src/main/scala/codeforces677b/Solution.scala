@@ -23,7 +23,7 @@ object Solution extends App {
             speed = procSpeed
           )
 
-        PotatoesSituation(Queue(potatoes: _*), foodProcessor, 0)
+        PotatoesSituation(Queue(potatoes: _*), foodProcessor)
     }
 
   type PotatoesState[T] = StateT[FoodProcLogger, PotatoesSituation, T]
@@ -46,39 +46,47 @@ object Solution extends App {
 
   println("kek")
 
-  def pushUntilFullOrQueueEmpty: PotatoesState[Unit] = {
-    def tryPushOnce = PotatoesState[Boolean] {
-      case situation@PotatoesSituation(+:(potato, tail), foodProc, _) =>
+
+  def fillAndProcessOnce : PotatoesState[Unit] = {
+    for {
+      b <- pushUntilFullOrQueueEmpty
+    } yield ()
+  }
+
+
+  def pushUntilFullOrQueueEmpty: PotatoesState[Boolean] = {
+    def tryPushOnce = PotatoesState[Option[Boolean]] {
+      case situation@PotatoesSituation(+:(potato, tail), foodProc) =>
 
         foodProc.tryPutPotato(potato) match {
           case \/-(newFoodProc : FoodProcessorLogged) =>
 
             newFoodProc.map(newProc =>
-              situation.copy(
+              PotatoesSituation(
                 tail,
                 newProc
-              ) -> true
+              ) -> Some(true)
             )
 
           case -\/(newFoodProc : FoodProcessorLogged) =>
-            newFoodProc.map(_ => situation -> false)
+            newFoodProc.map(_ => situation -> Some(false))
         }
 
       case situation =>
-        (situation -> false).point[FoodProcLogger]
+        (situation -> none[Boolean]).point[FoodProcLogger]
     }
 
-    PotatoesState[Unit] { situation : PotatoesSituation =>
+    PotatoesState[Boolean] { situation : PotatoesSituation =>
       Stream.continually(())
-        .scanLeft((situation, true).point[FoodProcLogger])({
+        .scanLeft((situation -> true.some).point[FoodProcLogger])({
           case (accum, _) =>
-            accum.flatMap({
+            accum >>= {
               case (sit, _) =>
                 tryPushOnce.run(sit)
-            })
+            }
         })
-        .find(_.value._2 == false).get
-        .map(((_ : Boolean) => ()).second)
+        .find(_.value._2.forall(!_)).get
+        .map(((b : Option[Boolean]) => b.isDefined).second)
     }
   }
 

@@ -30,19 +30,20 @@ class FoodProcessor private(
 
   def process: FoodProcessorLogged = {
     def _process(accum: FoodProcessorLogged, powerLeft: Int): FoodProcessorLogged = {
-      accum.flatMap(proc =>
+      accum >>= (proc =>
         proc.dequeue match {
           case (None, res) =>
             res
           case (Some(potato), tail) =>
             powerLeft - potato.heightLeft match {
               case diff if diff > 0 =>
-                _process(tail, diff)
+                _process(tail <|~ "Power is still left. Continuing slicing", diff)
               case 0 =>
-                tail :++> DList("No power left" -> tail.value)
+                tail <|~ "No power left"
               case _ =>
                 val slicedPotato = potato.slice(powerLeft)
-                tail :++> DList("Not enough power to slice full potato" -> tail.value) >>= (_.enqueueFront(slicedPotato))
+                (tail <|~ "Not enough power to slice full potato"
+                  >>= (_.enqueueFront(slicedPotato))) <|~ "No power left"
             }
         }
       )
