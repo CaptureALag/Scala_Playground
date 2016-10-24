@@ -39,6 +39,11 @@ object Solution extends App {
   println(afterPush.written.map(_._1).toList)
   println(afterPush.value)
 
+  val afterProcess = afterPush.flatMap(sit => sit.foodProcessor.process.map(proc => sit.copy(foodProcessor = proc)))
+
+  println(afterProcess.written.map(_._1).toList)
+  println(afterProcess.value)
+
   println("kek")
 
   def pushUntilFullOrQueueEmpty: PotatoesState[Unit] = {
@@ -55,8 +60,8 @@ object Solution extends App {
               ) -> true
             )
 
-          case -\/(_) =>
-            (situation -> false).point[FoodProcLogger]
+          case -\/(newFoodProc : FoodProcessorLogged) =>
+            newFoodProc.map(_ => situation -> false)
         }
 
       case situation =>
@@ -66,13 +71,14 @@ object Solution extends App {
     PotatoesState[Unit] { situation : PotatoesSituation =>
       Stream.continually(())
         .scanLeft((situation, true).point[FoodProcLogger])({
-          case (x, _) =>
-            val sit : PotatoesSituation = x.value._1
-            tryPushOnce.run(sit)
+          case (accum, _) =>
+            accum.flatMap({
+              case (sit, _) =>
+                tryPushOnce.run(sit)
+            })
         })
-        .takeWhile(_.value._2 == true)
-        .last
-        .map(_._1 -> ())
+        .find(_.value._2 == false).get
+        .map(((_ : Boolean) => ()).second)
     }
   }
 

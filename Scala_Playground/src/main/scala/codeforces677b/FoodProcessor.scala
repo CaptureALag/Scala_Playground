@@ -2,8 +2,9 @@ package codeforces677b
 
 import codeforces677b.FoodProcessorLoggingSupport._
 
-import scalaz.Scalaz._
 import scalaz._
+import Scalaz._
+import scalaz.Maybe.Just
 
 class FoodProcessor private(
                              val height: Int,
@@ -24,7 +25,7 @@ class FoodProcessor private(
       case x if x >= potato.heightLeft =>
         \/-(enqueue(potato))
       case _ =>
-        -\/(this <|~ s"Trying to enqueue $potato but no space left")
+        -\/(this <|~ s"Trying to enqueue $potato but no space left ($heightLeft/$height)")
     }
 
   def process: FoodProcessorLogged = {
@@ -38,10 +39,10 @@ class FoodProcessor private(
               case diff if diff > 0 =>
                 _process(tail, diff)
               case 0 =>
-                tail
-              case diff if diff < 0 =>
-                val slicedPotato = potato.slice(-diff)
-                tail.flatMap(_.enqueueFront(slicedPotato))
+                tail :++> DList("No power left" -> tail.value)
+              case _ =>
+                val slicedPotato = potato.slice(powerLeft)
+                tail :++> DList("Not enough power to slice full potato" -> tail.value) >>= (_.enqueueFront(slicedPotato))
             }
         }
       )
@@ -61,8 +62,8 @@ class FoodProcessor private(
   }
 
   private def dequeue: (Option[Potato], FoodProcessorLogged) = {
-    potatoQueue match {
-      case +:(potato: Potato, queueTail) =>
+    potatoQueue.uncons match {
+      case Just((potato, queueTail)) =>
         (
           Some(potato),
           copy(

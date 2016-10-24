@@ -1,26 +1,44 @@
 import scalaz._, Scalaz._
 
-type ListWriter[T] = Writer[DList[String], T]
+type StringLogger[T] = Writer[DList[String], T]
 
-def f = Writer[DList[String], String] (
-  DList("123"),
-  "abc"
-)
+type StackState[T] = StateT[StringLogger, List[Int], T]
 
-def g = Writer[DList[String], String] (
-  DList("456"),
-  "def"
-)
+def f : StackState[Int] = {
+  StateT[StringLogger, List[Int], Int] (s =>
+    Writer[DList[String], (List[Int], Int)] (
+      DList("Prepending 1"),
+      (1::s, (1::s).sum)
+    )
+  )
+}
 
-def h = Writer[DList[String], String] (
-  DList("789"),
-  "ghi"
-)
+def g : StackState[Int] = {
+  StateT[StringLogger, List[Int], Int] (s =>
+    Writer[DList[String], (List[Int], Int)] (
+      DList("Appending 99"),
+      (s :+ 99, 99)
+    )
+  )
+}
 
-List(
-  f,
-  g,
-  h
-).sequence[ListWriter, String].run._1.toList
+def h : StackState[Int] = {
+  StateT[StringLogger, List[Int], Int] (s =>
+    Writer[DList[String], (List[Int], Int)] (
+      DList("Prepending 50"),
+      (50::s, 50)
+    )
+  )
+}
 
-f.run._1.formatted("")
+Stream.continually(()).scanLeft(
+  Writer[DList[String], (List[Int], Int)] (
+    DList(),
+    (List(),10)
+  )
+) ( (accum, _) =>
+  accum.flatMap({
+    case (lst, _) =>
+      f.run(lst)
+  })
+).find(_.value._2 > 10).get
